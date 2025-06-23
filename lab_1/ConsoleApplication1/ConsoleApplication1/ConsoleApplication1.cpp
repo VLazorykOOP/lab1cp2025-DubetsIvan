@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <tuple>
-#include <stdexcept>
+#include <stdexcept>  
 using namespace std;
 
 struct TableRow {
@@ -15,7 +15,7 @@ bool readTable(const string& filename, vector<TableRow>& table) {
     if (!file.is_open()) return false;
 
     TableRow row;
-    while (file >> row.x >> row.T >> row.U >> row.U)
+    while (file >> row.x >> row.T >> row.U)  
         table.push_back(row);
     return true;
 }
@@ -31,38 +31,39 @@ pair<double, double> interpolate(const vector<TableRow>& table, double x) {
             return { T, U };
         }
     }
-    throw runtime_error("Interpolation failed: x out of range");
+    return { 0, 0 }; 
 }
 
 pair<double, double> get_T_U(double x, bool& ok) {
-    vector<TableRow> table;
-    string filename;
-
-    if (x <= 1) filename = "D:\\Універ\\2 курс\\Обчислювальна практика\\lab_1\\dat_X_1_1.dat";
-    else if (x < -1) {
-        x = 1.0 / x;
-        filename = "D:\\Універ\\2 курс\\Обчислювальна практика\\lab_1\\dat_X00_1.dat";
-    }
-    else {
-        x = 1.0 / x;
-        filename = "D:\\Універ\\2 курс\\Обчислювальна практика\\lab_1\\dat_X1_00.dat";
-    }
-
-    if (!readTable(filename, table)) {
-        ok = false;
-        return { 0, 0 };
-    }
-
     try {
+        vector<TableRow> table;
+        string filename;
+
+        if (x <= 1)
+            filename = "dat_X_1_1.dat";
+        else if (x < -1) {
+            x = 1.0 / x;
+            filename = "dat_X00_1.dat";
+        }
+        else {
+            x = 1.0 / x;
+            filename = "dat_X1_00.dat";
+        }
+
+        if (!readTable(filename, table)) {
+            ok = false;
+            return { 0, 0 };
+        }
+
         ok = true;
         return interpolate(table, x);
-    } catch (...) {
+    }
+    catch (const exception& e) {
+        cerr << "Exception in get_T_U: " << e.what() << endl;
         ok = false;
         return { 0, 0 };
     }
 }
-
-double Srz(double x, double y, double z);
 
 double T(double x, bool& ok) {
     return get_T_U(x, ok).first;
@@ -71,6 +72,8 @@ double T(double x, bool& ok) {
 double U(double x, bool& ok) {
     return get_T_U(x, ok).second;
 }
+
+double Srz(double x, double y, double z);
 
 double Srs(double x, double y, double z) {
     if (z + x * y <= 0) return Srz(x, y, z);
@@ -83,17 +86,18 @@ double Qrz(double x, double y, double a, double b, double (*Srs_func)(double, do
     return Srs_func(x, y, x);
 }
 
-double Rrz(double x, double y, double z);
-
 double Srz(double x, double y, double z) {
     bool ok1, ok2, ok3;
     double Ux = U(x, ok1), Uy = U(y, ok2), Uz = U(z, ok3);
     double Tx = T(x, ok1), Ty = T(y, ok2);
 
-    if (!(ok1 && ok2 && ok3)) return 1.3498 * x + 2.2362 * y * z - 2.348 * x * y;
+    if (!(ok1 && ok2 && ok3))
+        return 1.3498 * x + 2.2362 * y * z - 2.348 * x * y;
 
-    if (Uy + Uz - x <= 0) return Ty + Uy + Uz;
-    else return Tx + Uz + Ty;
+    if (Uy + Uz - x <= 0)
+        return Ty + Uy + Uz;
+    else
+        return Tx + Uz + Ty;
 }
 
 double Qrz1(double x, double y, double a, double b) {
@@ -123,6 +127,7 @@ double Rrz(double x, double y, double z) {
         return Qrz(y, z, x, y, Srs);
 }
 
+
 double Grs(double x, double y, double z) {
     return 0.1389 * Rrz(x, y, y) + 1.8389 * Rrz(x - y, z, y);
 }
@@ -130,7 +135,10 @@ double Grs(double x, double y, double z) {
 double fun(double x, double y, double z) {
     bool ok;
     get_T_U(x, ok);
-    if (!ok) return 1.3498 * x + 2.2362 * y * z - 2.348 * x * y;
+
+    if (!ok)
+        return 1.3498 * x + 2.2362 * y * z - 2.348 * x * y;
+
     return x * Grs(x, y, z) + y * Grs(x, z, y);
 }
 
@@ -138,25 +146,15 @@ int main() {
     try {
         double x, y, z;
         cout << "Enter x, y, z: ";
-        cin >> x >> y >> z;
-
-        if (cin.fail()) throw invalid_argument("Input error: please enter valid numbers.");
+        if (!(cin >> x >> y >> z))
+            throw runtime_error("Invalid input");
 
         double result = fun(x, y, z);
         cout << "fun(x, y, z) = " << result << endl;
     }
-    catch (const ifstream::failure& e) {
-        cerr << "File I/O error: " << e.what() << endl;
+    catch (const exception& e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
     }
-    catch (const invalid_argument& e) {
-        cerr << "Invalid input: " << e.what() << endl;
-    }
-    catch (const runtime_error& e) {
-        cerr << "Runtime error: " << e.what() << endl;
-    }
-    catch (...) {
-        cerr << "An unknown error occurred." << endl;
-    }
-
     return 0;
 }
