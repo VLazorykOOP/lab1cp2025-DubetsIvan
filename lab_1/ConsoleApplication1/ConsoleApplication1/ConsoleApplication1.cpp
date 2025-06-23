@@ -1,8 +1,9 @@
-﻿#include <iostream>
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <cmath>
 #include <tuple>
+#include <stdexcept>
 using namespace std;
 
 struct TableRow {
@@ -30,21 +31,21 @@ pair<double, double> interpolate(const vector<TableRow>& table, double x) {
             return { T, U };
         }
     }
-    return { 0, 0 };
+    throw runtime_error("Interpolation failed: x out of range");
 }
 
 pair<double, double> get_T_U(double x, bool& ok) {
     vector<TableRow> table;
     string filename;
 
-    if (x <= 1) filename = "D:Універ / 2 курс / Обчислювальна практика / lab_1 /dat_X_1_1.dat";
+    if (x <= 1) filename = "D:\\Універ\\2 курс\\Обчислювальна практика\\lab_1\\dat_X_1_1.dat";
     else if (x < -1) {
         x = 1.0 / x;
-        filename = "D:Універ / 2 курс / Обчислювальна практика / lab_1 /dat_X00_1.dat";
+        filename = "D:\\Універ\\2 курс\\Обчислювальна практика\\lab_1\\dat_X00_1.dat";
     }
     else {
         x = 1.0 / x;
-        filename = "D:Універ / 2 курс / Обчислювальна практика / lab_1 /dat_X1_00.dat";
+        filename = "D:\\Універ\\2 курс\\Обчислювальна практика\\lab_1\\dat_X1_00.dat";
     }
 
     if (!readTable(filename, table)) {
@@ -52,8 +53,13 @@ pair<double, double> get_T_U(double x, bool& ok) {
         return { 0, 0 };
     }
 
-    ok = true;
-    return interpolate(table, x);
+    try {
+        ok = true;
+        return interpolate(table, x);
+    } catch (...) {
+        ok = false;
+        return { 0, 0 };
+    }
 }
 
 double Srz(double x, double y, double z);
@@ -129,10 +135,28 @@ double fun(double x, double y, double z) {
 }
 
 int main() {
-    double x, y, z;
-    cout << "Enter x, y, z: ";
-    cin >> x >> y >> z;
-    double result = fun(x, y, z);
-    cout << "fun(x, y, z) = " << result << endl;
+    try {
+        double x, y, z;
+        cout << "Enter x, y, z: ";
+        cin >> x >> y >> z;
+
+        if (cin.fail()) throw invalid_argument("Input error: please enter valid numbers.");
+
+        double result = fun(x, y, z);
+        cout << "fun(x, y, z) = " << result << endl;
+    }
+    catch (const ifstream::failure& e) {
+        cerr << "File I/O error: " << e.what() << endl;
+    }
+    catch (const invalid_argument& e) {
+        cerr << "Invalid input: " << e.what() << endl;
+    }
+    catch (const runtime_error& e) {
+        cerr << "Runtime error: " << e.what() << endl;
+    }
+    catch (...) {
+        cerr << "An unknown error occurred." << endl;
+    }
+
     return 0;
 }
